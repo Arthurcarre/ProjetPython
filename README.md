@@ -1,6 +1,10 @@
 # ProjetPython - Protein Ligand Interactions Profiler
 
-**CIT** - short for **ChemoInfoTool** - is is a set of tools for chemo-informatics in order to manipulate oranalyse chemo-informatics data. **CIT** offers a web-app-based graphical user interface to run workflows in CIT. **CIT** CIT includes the ConformationTool class which processes the results of docking simulations of a molecule, or a set of molecules sharing a common substructure, in order to quantify the poses consistency and, consequently, to identify one, or several, predominant spatial binding mode corresponding to the representation of an energetically stable consensus pose for which the docking simulations, during the search for poses for a ligand in a binding pocket, has repeatedly landed.
+        Profiler is a class that allows the 3D pharmacophore of a protein-ligand complex to be established. 
+        From a PDB code or a pathway, it extracts the ligand as well as the residues that constitute the 
+        pocket. Profiler then builds the pharmacophore profile of the ligand and the pocket. 
+        Finally, Profiler compares the two profiles to determine the electrostatic interactions that
+        that would allow the complex to be stabilised.
 
 Requirements, installation and usage are thoroughly documented in the [PIA Wiki](https://github.com/Arthurcarre/ChemoTools/wiki).
 
