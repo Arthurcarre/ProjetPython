@@ -1,4 +1,4 @@
-# Version 0.1
+# 
 import os
 import requests
 import pymol2
@@ -14,6 +14,12 @@ from rdkit import RDConfig
 from bs4 import BeautifulSoup
 
 warnings.filterwarnings('ignore')
+
+"""
+The following three functions are from the TeachOpenCADD talktorial T008 module.
+They allow, from a PDB code, to restore the SMILES code of the ligands that the PDB file contains.
+This is useful here to reassign the order of double and triple bonds.
+"""
 
 def get_pdb_ligands(pdb_id):
     """
@@ -91,13 +97,13 @@ def _fetch_ligand_expo_info(ligand_expo_id):
 
 def get_distance_between_2_points(point1, point2):
     """
-    Calcul la distance euclidienne entre deux points dans un espace à trois dimensions
-    Paramètres :
+    Calculating the Euclidean distance between two points in a three-dimensional space
+    Parameters :
         Input :
-            - point1 : tuple de trois float correspondant aux coordonnées du point
-            - point2 : tuple de trois float correspondant aux coordonnées du point
+            - point1 : tuple of three floats corresponding to the coordinates of the point 1
+            - point2 : tuple of three floats corresponding to the coordinates of the point 2
         Output :
-            - distance :
+            - distance : Result of the calculation of the Euclidean distance in the format np.float
     """
     
     distance =  np.sqrt([  (point1[0] - point2[0])**2
@@ -107,32 +113,41 @@ def get_distance_between_2_points(point1, point2):
     
     return distance
 
-def get_angle(atom1_mol1_mid, atom2_mol1, atom_mol2):
-    """Description
+def get_angle(point1, point2, point3):
+    """
+    Calculating the angle between three points in a three-dimensional space
+    Parameters :
+        Input :
+            - point1 : tuple of three floats corresponding to the coordinates of the point 
+            which lies between the other two points
+            - point2 : tuple of three floats corresponding to the coordinates of the point 2
+            - point3 : tuple of three floats corresponding to the coordinates of the point 2
+        Output :
+            - distance : Result of the calculation of the Euclidean distance in the format np.float
     """ 
-    P12 = np.sqrt((atom1_mol1_mid.x_coord - atom_mol2.x_coord)**2
-                 +(atom1_mol1_mid.y_coord - atom_mol2.y_coord)**2
-                 +(atom1_mol1_mid.z_coord - atom_mol2.z_coord)**2)
-    P13 = np.sqrt((atom1_mol1_mid.x_coord - atom2_mol1.x_coord)**2
-                 +(atom1_mol1_mid.y_coord - atom2_mol1.y_coord)**2
-                 +(atom1_mol1_mid.z_coord - atom2_mol1.z_coord)**2)
-    P23 = np.sqrt((atom2_mol1.x_coord - atom_mol2.x_coord)**2
-                 +(atom2_mol1.y_coord - atom_mol2.y_coord)**2
-                 +(atom2_mol1.z_coord - atom_mol2.z_coord)**2)
+    P12 = np.sqrt((point1.x_coord - point2.x_coord)**2
+                 +(point1.y_coord - point2.y_coord)**2
+                 +(point1.z_coord - point2.z_coord)**2)
+    P13 = np.sqrt((point1.x_coord - point3.x_coord)**2
+                 +(point1.y_coord - point3.y_coord)**2
+                 +(point1.z_coord - point3.z_coord)**2)
+    P23 = np.sqrt((point3.x_coord - point2.x_coord)**2
+                 +(point3.y_coord - point2.y_coord)**2
+                 +(point3.z_coord - point2.z_coord)**2)
     
     return np.rad2deg(np.arccos((P12**2 + P13**2 - P23**2) / (2 * P12 * P13)))
 
 def protein_initialization(protein):
     """
-    Set l'index du tableau pandas correspondant à la protéine. Chaque ligne correspond à un atome.
-    Chaque atome porte, en index, pour identifiant, l'identifiant du résidu (exemple : TYR)
-    auquel il appartient, puis au numéro de ce résidu (exemple : 18), puis le numéro de la chaîne protéique
-    auquel appartient le résidu (exemple :A), suivi d'un underscore '_', suivi du nom de l'atome (exemple : CA).
-    Exemple : TYR18A_CA
+    Set the index of the pandas array corresponding to the protein. Each line corresponds to an atom.
+    Each atom has, as an index, the identifier of the residue (example: TYR)
+    to which it belongs, then the number of this residue (example: 18), then the number of the protein chain
+    to which the residue belongs (example: A), followed by an underscore '_',
+    followed by the name of the atom (example: CA). Example: TYR18A_CA
     
-    Paramètres :
+    Parameters :
         Input :
-            - protein : dataframe de la proteine au format pandas issu du module Biopandas.
+            - protein : dataframe of the protein in pandas format from the Biopandas module.
     """
     
     protein['residue'] = 0
@@ -153,21 +168,36 @@ def protein_initialization(protein):
     protein.set_index('indice', inplace = True)
 
 def get_ligand_with_pymol(pathway_molecule, ligand):
-    """Description
+    """
+    If the protein comes from a local PDB file, this function recreates the ligand by reassigning
+    the order of the double and triple bonds, as well as adding the hydrogens, through PyMOL.
+    Parameters :
+        Input :
+            - pathway_molecule : pathway of the molecule isolated and written with the Biopandas module
+            - ligand : dataframe of the ligand in pandas format from the Biopandas module.
+        Output :
+            - ligand in Mol File
     """
     p1 = pymol2.PyMOL()
     p1.start()
     p1.cmd.load(pathway_molecule, 'mol')
     p1.cmd.h_add()
-    p1.cmd.save('pymol_ligand.mol2')
-    p1.cmd.save('pymol_ligand.pdb')
+    p1.cmd.save('pymol_ligand.mol')
     p1.stop()
 
-    return Chem.MolFromMol2File('pymol_ligand.mol2', removeHs=False)
+    return Chem.MolFromMolFile('pymol_ligand.mol', removeHs=False)
 
 
-def get_ligand_with_smiles(pathway_molecule, ligand, smiles=None):
-    """Description
+def get_ligand_with_smiles(pathway_molecule, smiles):
+    """
+    If the protein comes from a PDB ID, this function recreates the ligand by reassigning
+    the order of the double and triple bonds, as well as adding the hydrogens, through the smiles code.
+    Parameters :
+        Input :
+            - pathway_molecule : pathway of the molecule isolated and written with the Biopandas module
+            - smiles : ligand smiles code
+        Output :
+            - ligand in Mol File
     """ 
     mol = Chem.MolFromPDBFile(pathway_molecule)
     template = Chem.MolFromSmiles(smiles)
@@ -177,8 +207,16 @@ def get_ligand_with_smiles(pathway_molecule, ligand, smiles=None):
                       addResidueInfo=True)
 
 def ligand_initialization(ligand):
-    """Description
     """
+    Set the index of the pandas array corresponding to the ligand. Each line corresponds to an atom.
+    Each atom has, as an index, the identifier of the residue (example: QNB)
+    to which it belongs, then the number of this residue (example: 108), then the number of the protein chain
+    to which the residue belongs (example: A), followed by an underscore '_',
+    followed by the name of the atom (example: C14). Example: QNB108A_C14
+    Parameters :
+        Input :
+            - ligand : dataframe of the ligand in pandas format from the Biopandas module.
+    """ 
     
     ligand['indice'] = 'na'
     for i in ligand.index:
@@ -190,8 +228,20 @@ def ligand_initialization(ligand):
     ligand.set_index('indice', inplace = True)
 
 def get_pocket(protein, ligand, size_pocket):
-    """Description
-    """       
+    """
+    From the selected ligand within the previously selected protein chain, the pocket 
+    is defined as all residues that are within SIZE_POCKET Å of each atom (except hydrogen) of the ligand. 
+    hydrogen) of the ligand.
+    Parameters :
+        Input :
+            - ligand : dataframe of the ligand in pandas format from the Biopandas module.
+            - protein : dataframe of the protein in pandas format from the Biopandas module.
+            - size_pocket : float which defines the maximum distance between a ligand atom and a protein atom
+            of the protein, for which the corresponding residue is considered as constituting the pocket.
+        Output :
+            - pocket : dataframe of the pocket in pandas format from the Biopandas module.
+            - pocket_structure : pocket in rdKit mol file
+    """    
     iteration = 0
     indice_atom_pocket = []
     for atom_protein in protein.index :
@@ -236,26 +286,35 @@ def get_pocket(protein, ligand, size_pocket):
                 records=None, 
                 gz=False, 
                 append_newline=True)
+    print(f"\nThe residues which constitute the pocket are : {set(pocket.df['ATOM']['residue'])}")
     
-    p1 = pymol2.PyMOL()
-    p1.start()
-    p1.cmd.load('pocket.pdb')
-    p1.cmd.save('pocket.mol2')
-    p1.stop()
-    
-    #print(f"\nThe residues which constitute the pocket are : {set(pocket['residue'])}")
-    
-    return protein.loc[indice_res_pocket], Chem.MolFromMol2File('pocket.mol2', removeHs=False) 
+    return protein.loc[indice_res_pocket], Chem.MolFromPDBFile('pocket.pdb', removeHs=False) 
   
-def caracterisation(molecule, molecule_rdkit, type_molecule=False):
-    """Description
+def caracterisation(molecule, molecule_structure, type_molecule=False):
+    """
+    This function takes a molecule as input (ligand or pocket for example) and determines for each atom its
+    atom its hybridisation as well as its neighbors. It then establishes the pharmacophore profile of the
+    molecule and stores all the information in a dataframe.
+    Parameters :
+        Input :
+            - molecule : dataframe of the molecule in pandas format from the Biopandas module.
+            - molecule_structure : molecule in Mol File
+            - type_molecule : If it is the pocket, it converts the nitrogen of the isolated backbone 
+            (i.e. the nitrogen of the pocket residues that are no longer linked to the residues that are not part of the pocket. 
+            to the residues that are not part of the pocket) into SP2 hybridisation.
+        Output :
+            - molecule : dataframe of the molecule in pandas format from the Biopandas module including
+            the hybridisation of each atom as well as its neighbors
+            - profile : dataframe including each pharmacophore featuring per row. In columns, there are the 
+            family, the type and the coordonates of each pharmacophore featuring as well as the identifier of
+            each atom involved in the pharmacophore featuring.
     """           
     index = molecule.index
-    atomic_number = pd.Series([atom.GetIdx() for atom in molecule_rdkit.GetAtoms()], index = index)
-    symbol = pd.Series([atom.GetSymbol() for atom in molecule_rdkit.GetAtoms()], index = index)
+    atomic_number = pd.Series([atom.GetIdx() for atom in molecule_structure.GetAtoms()], index = index)
+    symbol = pd.Series([atom.GetSymbol() for atom in molecule_structure.GetAtoms()], index = index)
     neighbors_rdkit = pd.Series([
-        atom.GetNeighbors() for atom in molecule_rdkit.GetAtoms()], index = index)
-    hybridation = pd.Series([str(atom.GetHybridization()) for atom in molecule_rdkit.GetAtoms()],
+        atom.GetNeighbors() for atom in molecule_structure.GetAtoms()], index = index)
+    hybridation = pd.Series([str(atom.GetHybridization()) for atom in molecule_structure.GetAtoms()],
                             index = index)
     
     rdkit_df = pd.DataFrame({'Atom Symbol': symbol,
@@ -271,7 +330,7 @@ def caracterisation(molecule, molecule_rdkit, type_molecule=False):
     
     fdefName = 'BaseFeatures.fdef'
     factory = ChemicalFeatures.BuildFeatureFactory(fdefName)
-    feats = factory.GetFeaturesForMol(molecule_rdkit)
+    feats = factory.GetFeaturesForMol(molecule_structure)
 
     features_family = [i.GetFamily() for i in feats]
     features_type = [i.GetType() for i in feats]
@@ -298,8 +357,22 @@ def get_hydrophobic_interactions(ligand,
                                  pocket,
                                  pocket_profile,
                                  hydrophobic_bond_distance):
-    """Description
-    """ 
+    """
+    Computation of hydrophobic interactions between the ligand and the pocket.
+    Parameters :
+        Input :
+            - ligand : dataframe of the ligand in pandas format from the Biopandas module.
+            - ligand_profile : ligand in Mol File
+            - pocket : dataframe of the pocket in pandas format from the Biopandas module.
+            - pocket_profile : pocket in Mol File
+            - hydrophobic_bond_distance : float which defines the maximum distance between two
+            hydrophobic atoms between the ligand and the pocket, for which we consider the
+            hydrophobic interaction as valid.
+        Output :
+            - results_hydrophobic_interactions : hydrophobic interaction dataframe including the residues,
+            residue numbers, distance, ligand and protein atom numbers, ligand and protein atom symbols,
+            which are involved in each interaction.
+    """           
     residues = []
     aa = []
     distances = []
@@ -387,31 +460,45 @@ def get_hydrophobic_interactions(ligand,
                                 feat_pock, "atom_Index"]))]))[2:-2])
 
 
-    results_hydrophobic = pd.DataFrame(list(zip(residues,
-                                                 aa,
-                                                 distances,
-                                                 atom_ligand_id,
-                                                 atom_ligand_symbol,
-                                                 protein_atom_id,
-                                                 protein_atom_symbol,
-                                                 feat_lig_index,
-                                                 feat_pock_index)),
+    results_hydrophobic_interactions = pd.DataFrame(list(zip(residues,
+                                                             aa,
+                                                             distances,
+                                                             atom_ligand_id,
+                                                             atom_ligand_symbol,
+                                                             protein_atom_id,
+                                                             protein_atom_symbol,
+                                                             feat_lig_index,
+                                                             feat_pock_index)),
 
                                         columns=["Residue", "AA", "Distance",
                                                  "N° Ligand Atom", "Ligand Atom Symbol",
                                                  "N° Protein Atom", "Protein Atom Symbol",
                                                  "Feat Lig Index", "Feat Pock Index"])
 
-    results_hydrophobic.sort_values(by=['Residue'], inplace = True)
-    return results_hydrophobic
+    results_hydrophobic_interactions.sort_values(by=['Residue'], inplace = True)
+    return results_hydrophobic_interactions
 
 def get_salt_bridges(ligand,
                      ligand_profile,
                      pocket,
                      pocket_profile,
                      salt_bridge_distance):
-    """Description
-    """ 
+    """
+    Computation of salt bridges between the ligand and the pocket.
+    Parameters :
+        Input :
+            - ligand : dataframe of the ligand in pandas format from the Biopandas module.
+            - ligand_profile : ligand in Mol File
+            - pocket : dataframe of the pocket in pandas format from the Biopandas module.
+            - pocket_profile : pocket in Mol File
+            - salt_bridge_distance : float which defines the maximum distance between two
+            opposited charged atoms group between the ligand and the pocket, for which we consider the
+            salt bridges as valid.
+        Output :
+            - results_salt_bridges : salt bridges dataframe including the residues,
+            residue numbers, distance, ligand and protein atom numbers, ligand and protein atom symbols,
+            which are involved in each interaction.
+    """   
     residues = []
     aa = []
     distances = []
@@ -602,8 +689,32 @@ def get_h_bonds_interactions(ligand,
                              h_bond_angle_sp3,
                              h_bond_angle_sp2,
                              salt_bridges_results):
-    """Description
-    """ 
+    """
+    Computation of hydrogen bonds between the ligand and the pocket.
+    Parameters :
+        Input :
+            - ligand : dataframe of the ligand in pandas format from the Biopandas module.
+            - ligand_profile : ligand in Mol File
+            - pocket : dataframe of the pocket in pandas format from the Biopandas module.
+            - pocket_profile : pocket in Mol File
+            - h_bond_distance : float which defines the maximum distance between hydrogen bond donor
+            and one hydrogen bond acceptor atoms between the ligand and the pocket, for which we consider the
+            hydrogen bond interaction as valid.
+            - h_bond_angle_sp3 : Maximum deviation of the angle consisting of the carbon bearing
+            the donor heteroatom, the donor heteroatom and the acceptor heteroatom.
+            - h_bond_angle_sp2 : Maximum deviation of the angle consisting of the donor heteroatom,
+            the hydrogen and the acceptor heteroatom.
+            - salt_bridges_results : salt bridges dataframe results. If 2 atoms between the ligand and
+            the protein have a valid hydrogen bond AND a valid salt bridge, the hydrogen bond is cancel
+            in favor of the salt bridge.
+        Output :
+            - results_h_bond_donor : hydrogen bond donor interactions dataframe including the residues,
+            residue numbers, distance, ligand and protein atom numbers, ligand and protein atom symbols,
+            which are involved in each interaction.
+            - results_h_bond_acceptor : hydrogen bond acceptor interactions dataframe including the residues,
+            residue numbers, distance, ligand and protein atom numbers, ligand and protein atom symbols,
+            which are involved in each interaction. 
+    """   
     residues = []
     aa = []
     distances = []
@@ -634,7 +745,6 @@ def get_h_bonds_interactions(ligand,
                                 str(pocket.loc[atom_P, 'atom_number']) in salt_bridges_results.loc[
                                     index, 'N° Protein Atom'].split(', ')) :
                                 _pass += 1
-                                print('Stopped')
                                 
                         if _pass == 0 :
                             distance = h_bond_distance + 1
@@ -796,7 +906,6 @@ def get_h_bonds_interactions(ligand,
                             str(pocket.loc[atom_P, 'atom_number']) in salt_bridges_results.loc[
                                 index, 'N° Protein Atom'].split(', ')) :
                             _pass += 1
-                            print('Stopped')
                     
                     if _pass == 0 :
                         distance = h_bond_distance + 1
@@ -949,7 +1058,30 @@ class Profiler :
                  h_bond_angle_sp3 = 19.5,
                  h_bond_angle_sp2 = 34,
                  salt_bridge_distance = 5.5) :
-        """Description
+        """
+        Profiler is a class that allows the 3D pharmacophore of a protein-ligand complex to be established. 
+        From a PDB code or a pathway, it extracts the ligand as well as the residues that constitute the 
+        pocket. Profiler then builds the pharmacophore profile of the ligand and the pocket. 
+        Finally, Profiler compares the two profiles to determine the electrostatic interactions that
+        that would allow the complex to be stabilised.
+
+        
+        The initialization of this class includes the definition of several parameters :
+                 - size_pocket : float which defines the maximum distance between a ligand atom and a protein atom
+            of the protein, for which the corresponding residue is considered as constituting the pocket.,
+                 - hydrophobic_bond_distance : float which defines the maximum distance between two
+            hydrophobic atoms between the ligand and the pocket, for which we consider the
+            hydrophobic interaction as valid.,
+                 - h_bond_distance = float which defines the maximum distance between hydrogen bond donor
+            and one hydrogen bond acceptor atoms between the ligand and the pocket, for which we consider the
+            hydrogen bond interaction as valid.
+                 - h_bond_angle_sp3 : Maximum deviation of the angle consisting of the carbon bearing
+            the donor heteroatom, the donor heteroatom and the acceptor heteroatom.
+                 - h_bond_angle_sp2 : Maximum deviation of the angle consisting of the donor heteroatom,
+            the hydrogen and the acceptor heteroatom.
+                 - salt_bridge_distance = float which defines the maximum distance between two
+            opposited charged atoms group between the ligand and the pocket, for which we consider the
+            salt bridges as valid. :
         """
         
         self.size_pocket = size_pocket
@@ -960,8 +1092,15 @@ class Profiler :
         self.salt_bridge_distance = salt_bridge_distance
 
     def get_complex(self, protein=None, ligand=None, chain=None) :
-        """Description
         """
+        Preparation phase to obtain the ligand and the pocket and to compute 
+        the phamacophoric profile of each respectively.
+        Parameters :
+            Input :
+                - protein : PDB code or pathway (string)
+                - ligand : PDB code or pathway (string)
+                - chain : Letter(s) corresponding to the channel(s) to be selected (string or list)
+        """   
         if len(protein) >= 4 :
             if len(protein) == 4 :
                 complexe = PandasPdb().fetch_pdb(protein) #Charge la protein avec le module Biopandas
@@ -969,21 +1108,26 @@ class Profiler :
             elif len(protein) > 4 :
                 complexe = PandasPdb().read_pdb(protein)
 
-            if not ligand and complexe.df['HETATM'].empty :
+            complex_without_water = complexe
+            complex_without_water.df['HETATM'].drop(
+                index=complex_without_water.df['HETATM'][
+                    complex_without_water.df['HETATM']['residue_name'] == 'HOH'].index,
+                inplace=True)
+            
+            if not ligand and complex_without_water.df['HETATM'].empty :
                 print("Error ! There isn't any ligand in the input protein.",
                       " Please check your input protein or input an external ligand.")
-            
             else :
                 if chain or len(set(complexe.df['ATOM']['chain_id'])) == 1 :
                     if len(set(complexe.df['ATOM']['chain_id'])) == 1 :
                         chain = set(complexe.df['ATOM']['chain_id'])
                     
                     g = complexe.df['ATOM'].groupby('chain_id')
-                    complexe.df['ATOM'] = pd.concat([g.get_group(i) for i in chain],
+                    complexe.df['ATOM'] = pd.concat([g.get_group(i.upper()) for i in chain],
                                                      axis=0,
                                                      verify_integrity=True)
                     g = complexe.df['HETATM'].groupby('chain_id')
-                    complexe.df['HETATM'] = pd.concat([g.get_group(i) for i in chain],
+                    complexe.df['HETATM'] = pd.concat([g.get_group(i.upper()) for i in chain],
                                                      axis=0,
                                                      verify_integrity=True)
                
@@ -1000,34 +1144,34 @@ class Profiler :
                     self.protein = self.complexe['ATOM'] #Définis la protéine
                     protein_initialization(self.protein) #Initialise la protéine
 
-                    if not ligand :
+                    if not ligand and len(set(complex_without_water.df['HETATM']['residue_name'])) > 1 :
                         print('Error ! You have to choose one ligand. Either you input an external ligand,',
                               'either you select one ligand among the ones in the input protein :\n')
-                        for i in set(complexe.df['HETATM']['residue_name']) :
-                            if 'HOH' not in i :
-                                print(i)
+                        print(set(complex_without_water.df['HETATM']['residue_name']))
                         
                     else:
+                        if not ligand and len(set(complex_without_water.df['HETATM']['residue_name'])) == 1 :
+                            ligand = str(set(complex_without_water.df['HETATM']['residue_name']))[2:-2]
                         if len(ligand) == 3 :
                             if len(set(self.complexe['HETATM'][
                                 self.complexe[
-                                    'HETATM']['residue_name'] == ligand]['residue_name'][1:] +
+                                    'HETATM']['residue_name'] == ligand.upper()]['residue_name'][1:] +
                                        pd.Series(str(self.complexe['HETATM'][
                                            self.complexe['HETATM'][
-                                               'residue_name'] == ligand].residue_number.to_list())[
+                                               'residue_name'] == ligand.upper()].residue_number.to_list())[
                                            1:-1].split(','), index = self.complexe[
                                            'HETATM'][self.complexe['HETATM'][
-                                           'residue_name'] == ligand].index)[1:])) > 1 :
+                                           'residue_name'] == ligand.upper()].index)[1:])) > 1 :
                                 
-                                print(f"The input protein include several ligand named '{ligand}' among",
+                                print(f"The input protein include several ligand named '{ligand.upper()}' among",
                                       'the selected chains. Only the first one on the list was considered.')
 
                             lig = complexe
                             if len(chain) == 1 :
                                 lig.df['HETATM'] = lig.df[
-                                    'HETATM'].groupby('chain_id').get_group(list(chain)[0])
+                                    'HETATM'].groupby('chain_id').get_group(list(chain.upper())[0])
                             else :
-                                lig.df['HETATM'] = lig.df['HETATM'].groupby('chain_id').get_group(chain[0])
+                                lig.df['HETATM'] = lig.df['HETATM'].groupby('chain_id').get_group(chain[0].upper())
                             lig.df['HETATM'] = lig.df[
                                 'HETATM'][lig.df['HETATM']['residue_name'] == ligand.upper()]
                             del lig.df['ATOM']
@@ -1050,35 +1194,36 @@ class Profiler :
                             if len(protein) == 4 :
                                 pdb_ligands = get_pdb_ligands(protein)
                                 smiles_ligand = pdb_ligands[ligand.upper()]['SMILES (CACTVS)']
-                                self.ligand_rdkit = get_ligand_with_smiles(
-                                    'ligand_biopandas.pdb', ligand, smiles_ligand)
+                                self.ligand_structure = get_ligand_with_smiles(
+                                    'ligand_biopandas.pdb', smiles_ligand)
                             elif len(protein) > 4 :
-                                self.ligand_rdkit = get_ligand_with_pymol('ligand_biopandas.pdb', ligand)
+                                self.ligand_structure = get_ligand_with_pymol('ligand_biopandas.pdb', ligand)
+                                os.remove('pymol_ligand.mol')
                             
                             os.remove('ligand_biopandas.pdb')
-                            Chem.MolToPDBFile(self.ligand_rdkit, 'RDKit_ligand.pdb')
+                            Chem.MolToPDBFile(self.ligand_structure, 'RDKit_ligand.pdb')
                             self.ligand = PandasPdb().read_pdb('RDKit_ligand.pdb').df['HETATM']
                             ligand_initialization(self.ligand)
                             self.ligand, self.ligand_profile = caracterisation(self.ligand,
-                                                                               self.ligand_rdkit)
+                                                                               self.ligand_structure)
 
                         elif len(ligand) > 3 :
                             if ligand[-3:] == 'pdb' :
-                                self.ligand_rdkit = Chem.AddHs(Chem.MolFromPDBFile(ligand), addCoords=True)
+                                self.ligand_structure = Chem.AddHs(Chem.MolFromPDBFile(ligand), addCoords=True)
                             elif ligand[-3:] == 'mol':
-                                self.ligand_rdkit = Chem.AddHs(Chem.MolFromMolFile(ligand), addCoords=True)
-                            Chem.MolToPDBFile(self.ligand_rdkit, 'ligand.pdb')
+                                self.ligand_structure = Chem.AddHs(Chem.MolFromMolFile(ligand), addCoords=True)
+                            Chem.MolToPDBFile(self.ligand_structure, 'ligand.pdb')
                             self.ligand = PandasPdb().read_pdb('ligand.pdb').df['HETATM']
                             ligand_initialization(self.ligand)
                             self.ligand, self.ligand_profile = caracterisation(self.ligand,
-                                                                               self.ligand_rdkit)
+                                                                               self.ligand_structure)
 
-                        self.pocket, self.pocket_rdkit = get_pocket(self.protein,
+                        self.pocket, self.pocket_structure = get_pocket(self.protein,
                                                                     self.ligand,
                                                                     self.size_pocket)
-                        os.remove('pocket.mol2')
+                        
                         self.pocket, self.pocket_profile = caracterisation(self.pocket,
-                                                                           self.pocket_rdkit,
+                                                                           self.pocket_structure,
                                                                            type_molecule = 'Pocket')
                 
                 else :
@@ -1097,7 +1242,13 @@ class Profiler :
             
 
     def get_interactions(self, view=False) :
-        """Description
+        """
+        Determines electrostatic interactions (hydrophobic, hydrogen bonding and salt bridge) 
+        from the pharmacophoric profiles of the ligand and the pocket.
+        Parameters :
+            Input :
+                - view : if toggled into 'True', at the end of the interaction calculation,
+                a PyMOL window is launched with a visualisation of the 3D pharmacophore.
         """
         
         self.hydrophobic_interactions = get_hydrophobic_interactions(self.ligand,
@@ -1259,3 +1410,4 @@ class Profiler :
             subprocess.run(["pymol", "3DPharmacophore.pse"])
         if os.path.exists('__pycache__') :
             subprocess.run(["rm", "-rf", "__pycache__"])
+    
