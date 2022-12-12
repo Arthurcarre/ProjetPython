@@ -1174,7 +1174,7 @@ class Profiler :
                             lig = complexe
                             if len(chain) == 1 :
                                 lig.df['HETATM'] = lig.df[
-                                    'HETATM'].groupby('chain_id').get_group(list(chain.upper())[0])
+                                    'HETATM'].groupby('chain_id').get_group(list(chain)[0].upper())
                             else :
                                 lig.df['HETATM'] = lig.df['HETATM'].groupby('chain_id').get_group(chain[0].upper())
                             lig.df['HETATM'] = lig.df[
