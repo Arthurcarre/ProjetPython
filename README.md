@@ -14,7 +14,7 @@ Using the requirements called "environment_ProjetPython.yml", you can create a c
 
 ## Usage
 
-#With pdb and ligand id
+### With pdb and ligand id
 
         from Pharmacophore3D import Profiler
 
@@ -22,7 +22,7 @@ Using the requirements called "environment_ProjetPython.yml", you can create a c
         p.get_complex(protein='8ef6', ligand='MOI', chain='M')
         p.get_interactions(view=True)
 
-#With pdb and ligand pathway
+### With pdb and ligand pathway
 
         from Pharmacophore3D import Profiler
 
